@@ -1,11 +1,9 @@
-import { createClient } from "@supabase/supabase-js";
-
-// Te 2 zmienne ustawisz jako ENV w Netlify (frontend):
+// 2 zmienne ENV w Netlify:
 // SUPABASE_URL, SUPABASE_ANON_KEY
 const SUPABASE_URL = import.meta.env?.SUPABASE_URL || window.SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env?.SUPABASE_ANON_KEY || window.SUPABASE_ANON_KEY;
 
-// Fallback: jeśli Netlify nie poda import.meta.env, wstrzykniemy przez <script> (opcjonalnie).
+// Fallback: jeśli Netlify nie poda import.meta.env.
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.warn("Brak SUPABASE_URL / SUPABASE_ANON_KEY. Ustaw w Netlify ENV i/lub wstrzyknij w index.html.");
 }
