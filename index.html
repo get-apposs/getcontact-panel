@@ -186,6 +186,13 @@ async function loadLeads() {
       <td>${r.email || ""}</td>
       <td>${r.phone || ""}</td>
       <td>${r.status || "new"}</td>
+      <td>
+  <select data-id="${r.id}" class="statusSel">
+    <option value="new" ${r.status==="new"?"selected":""}>new</option>
+    <option value="seen" ${r.status==="seen"?"selected":""}>seen</option>
+    <option value="contacted" ${r.status==="contacted"?"selected":""}>contacted</option>
+  </select>
+</td>
     `;
     tbody.appendChild(tr);
   });
@@ -218,6 +225,52 @@ async function loadLeads() {
 setUIFromSession();
 sb.auth.onAuthStateChange(() => setUIFromSession());
 
+
+function escapeCsv(v){
+  const s = (v ?? "").toString();
+  return /[",\n]/.test(s) ? `"${s.replaceAll('"','""')}"` : s;
+}
+
+async function exportCSV() {
+  const landingId = document.getElementById("landingSelect").value;
+  const status = document.getElementById("statusFilter").value;
+
+  let q = sb
+    .from("leads")
+    .select("created_at,name,email,phone,status")
+    .eq("landing_id", landingId)
+    .order("created_at", { ascending: false })
+    .limit(5000);
+
+  if (status) q = q.eq("status", status);
+
+  const { data, error } = await q;
+  if (error) { console.error(error); alert("Błąd eksportu"); return; }
+
+  const header = ["created_at","name","email","phone","status"];
+  const rows = [header.join(",")].concat(
+    (data || []).map(r => header.map(k => escapeCsv(r[k])).join(","))
+  );
+
+  const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "leads.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+
+  document.querySelectorAll(".statusSel").forEach(sel => {
+  sel.addEventListener("change", async (e) => {
+    const id = e.target.dataset.id;
+    const value = e.target.value;
+
+    const { error } = await sb.from("leads").update({ status: value }).eq("id", id);
+    if (error) { console.error(error); alert("RLS blokuje UPDATE albo błąd zapisu"); }
+  });
+});
+  
 </script>
 
 
