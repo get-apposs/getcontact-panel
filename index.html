@@ -217,10 +217,11 @@
     await setUIFromSession();
   });
 
-  landingSelect.addEventListener("change", loadLeads);
+ landingSelect.addEventListener("change", loadLeads);
 
-  await setUIFromSession();
-  supabase.auth.onAuthStateChange(() => setUIFromSession());
+setUIFromSession();
+supabase.auth.onAuthStateChange(() => setUIFromSession());
+
 
   // ---------- KONIEC KODU Z app.js ----------
 </script>
