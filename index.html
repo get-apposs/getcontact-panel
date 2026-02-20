@@ -96,13 +96,12 @@
 
 
 <script>
+  console.log("SUPABASE UMD:", window.supabase);
+  
   const SUPABASE_URL = "https://xrixslhtrqbthcjcjloz.sb..co";
   const SUPABASE_ANON_KEY = "sb_publishable_XF9Tr4qzZ1Tn4xqeIS6JKQ_PCQyB9UR";
 
-const sb = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 
   const el = (id) => document.getElementById(id);
