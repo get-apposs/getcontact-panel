@@ -99,13 +99,11 @@
   const SUPABASE_URL = "https://xrixslhtrqbthcjcjloz.sb..co";
   const SUPABASE_ANON_KEY = "sb_publishable_XF9Tr4qzZ1Tn4xqeIS6JKQ_PCQyB9UR";
 
-const sb = window.sb.createClient(
+const sb = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 );
 
-
-  // ---------- OD TEGO MIEJSCA WKLEJ CAŁY KOD Z app.js ----------
 
   const el = (id) => document.getElementById(id);
 
@@ -228,10 +226,6 @@ sb.auth.onAuthStateChange(() => setUIFromSession());
 
 
 
-
-
-
-  
 
 
 </body>
