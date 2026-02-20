@@ -99,7 +99,7 @@
   console.log("SUPABASE UMD:", window.supabase);
   
   const SUPABASE_URL = "https://xrixslhtrqbthcjcjloz.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_XF9Tr4qzZ1Tn4xqeIS6JKQ_PCQyB9UR";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyaXhzbGh0cnFidGhjamNqbG96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1ODAxNTksImV4cCI6MjA4NzE1NjE1OX0.KxKNlIm5PmP-OZ0apLYHN_-99AuGswn6HigNWmBPv7U";
 
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -146,54 +146,49 @@
     await loadLeads();
   }
 
-  async function loadLandings() {
-    const { data, error } = await supabase
-      .from("landings")
-      .select("id, name, public_path, active, created_at")
-      .order("created_at", { ascending: false });
+async function loadLandings() {
+  const { data, error } = await sb
+    .from("landings")
+    .select("id, name, public_path, active, created_at")
+    .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error(error);
-      return;
-    }
+  if (error) { console.error(error); return; }
 
-    landingSelect.innerHTML = "";
-    (data || []).forEach((l) => {
-      const opt = document.createElement("option");
-      opt.value = l.id;
-      opt.textContent = l.public_path;
-      landingSelect.appendChild(opt);
-    });
-  }
+  landingSelect.innerHTML = "";
+  (data || []).forEach((l) => {
+    const opt = document.createElement("option");
+    opt.value = l.id;
+    opt.textContent = l.public_path;
+    landingSelect.appendChild(opt);
+  });
+}
 
-  async function loadLeads() {
-    tbody.innerHTML = "";
-    const landingId = landingSelect.value;
-    if (!landingId) return;
+async function loadLeads() {
+  tbody.innerHTML = "";
+  const landingId = landingSelect.value;
+  if (!landingId) return;
 
-    const { data, error } = await supabase
-      .from("leads")
-      .select("*")
-      .eq("landing_id", landingId)
-      .order("created_at", { ascending: false });
+  const { data, error } = await sb
+    .from("leads")
+    .select("*")
+    .eq("landing_id", landingId)
+    .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error(error);
-      return;
-    }
+  if (error) { console.error(error); return; }
 
-    (data || []).forEach((r) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${fmtDate(r.created_at)}</td>
-        <td>${r.name || ""}</td>
-        <td>${r.email || ""}</td>
-        <td>${r.phone || ""}</td>
-        <td>${r.status || "new"}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
+  (data || []).forEach((r) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${fmtDate(r.created_at)}</td>
+      <td>${r.name || ""}</td>
+      <td>${r.email || ""}</td>
+      <td>${r.phone || ""}</td>
+      <td>${r.status || "new"}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
 
   el("loginBtn").addEventListener("click", async () => {
     loginMsg.textContent = "";
