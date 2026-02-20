@@ -89,6 +89,9 @@
     </div>
   </div>
 
+
+
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
@@ -100,8 +103,135 @@
     SUPABASE_ANON_KEY
   );
 
-  // tutaj wklej CAŁY kod z app.js
+  // ---------- OD TEGO MIEJSCA WKLEJ CAŁY KOD Z app.js ----------
+
+  const el = (id) => document.getElementById(id);
+
+  const loginCard = el("loginCard");
+  const appCard = el("appCard");
+  const loginMsg = el("loginMsg");
+  const who = el("who");
+  const logoutBtn = el("logoutBtn");
+
+  const landingSelect = el("landingSelect");
+  const statusFilter = el("statusFilter");
+  const refreshBtn = el("refreshBtn");
+  const csvBtn = el("csvBtn");
+  const tbody = el("tbody");
+  const info = el("info");
+
+  function fmtDate(iso) {
+    try { return new Date(iso).toLocaleString("pl-PL"); } catch { return iso; }
+  }
+
+  async function setUIFromSession() {
+    const { data } = await supabase.auth.getSession();
+    const user = data.session?.user;
+
+    if (!user) {
+      loginCard.classList.remove("hide");
+      appCard.classList.add("hide");
+      who.classList.add("hide");
+      logoutBtn.classList.add("hide");
+      return;
+    }
+
+    who.textContent = user.email || user.id;
+    who.classList.remove("hide");
+    logoutBtn.classList.remove("hide");
+
+    loginCard.classList.add("hide");
+    appCard.classList.remove("hide");
+
+    await loadLandings();
+    await loadLeads();
+  }
+
+  async function loadLandings() {
+    const { data, error } = await supabase
+      .from("landings")
+      .select("id, name, public_path, active, created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    landingSelect.innerHTML = "";
+    (data || []).forEach((l) => {
+      const opt = document.createElement("option");
+      opt.value = l.id;
+      opt.textContent = l.public_path;
+      landingSelect.appendChild(opt);
+    });
+  }
+
+  async function loadLeads() {
+    tbody.innerHTML = "";
+    const landingId = landingSelect.value;
+    if (!landingId) return;
+
+    const { data, error } = await supabase
+      .from("leads")
+      .select("*")
+      .eq("landing_id", landingId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    (data || []).forEach((r) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${fmtDate(r.created_at)}</td>
+        <td>${r.name || ""}</td>
+        <td>${r.email || ""}</td>
+        <td>${r.phone || ""}</td>
+        <td>${r.status || "new"}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  el("loginBtn").addEventListener("click", async () => {
+    loginMsg.textContent = "";
+    const email = el("email").value.trim();
+    const password = el("pass").value;
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      loginMsg.textContent = "Błędny email lub hasło.";
+      console.error(error);
+      return;
+    }
+
+    await setUIFromSession();
+  });
+
+  logoutBtn.addEventListener("click", async () => {
+    await supabase.auth.signOut();
+    await setUIFromSession();
+  });
+
+  landingSelect.addEventListener("change", loadLeads);
+
+  await setUIFromSession();
+  supabase.auth.onAuthStateChange(() => setUIFromSession());
+
+  // ---------- KONIEC KODU Z app.js ----------
 </script>
+
+
+
+
+
+
+  
+
 
 </body>
 </html>
