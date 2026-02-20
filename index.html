@@ -148,9 +148,10 @@
 
 async function loadLandings() {
   const { data, error } = await sb
-    .from("landings")
-    .select("id, name, public_path, active, created_at")
-    .order("created_at", { ascending: false });
+  .from("landings")
+  .select("id, name, public_path, active, created_at")
+  .order("created_at", { ascending: false });
+
 
   if (error) { console.error(error); return; }
 
@@ -169,10 +170,11 @@ async function loadLeads() {
   if (!landingId) return;
 
   const { data, error } = await sb
-    .from("leads")
-    .select("*")
-    .eq("landing_id", landingId)
-    .order("created_at", { ascending: false });
+  .from("leads")
+  .select("*")
+  .eq("landing_id", landingId)
+  .order("created_at", { ascending: false });
+
 
   if (error) { console.error(error); return; }
 
