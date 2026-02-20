@@ -212,6 +212,38 @@ async function loadLeads() {
       return;
     }
 
+/******************************************************************************/
+    async function setUIFromSession() {
+  const { data, error } = await sb.auth.getSession();
+  console.log("getSession data:", data, "error:", error);
+
+  const user = data?.session?.user || null;
+  console.log("user in setUIFromSession:", user);
+
+  if (!user) {
+    console.log("Brak usera → pokazuję login");
+    loginCard.classList.remove("hide");
+    appCard.classList.add("hide");
+    who.classList.add("hide");
+    logoutBtn.classList.add("hide");
+    return;
+  }
+
+  console.log("Jest user → pokazuję panel");
+  who.textContent = user.email || user.id;
+  who.classList.remove("hide");
+  logoutBtn.classList.remove("hide");
+
+  loginCard.classList.add("hide");
+  appCard.classList.remove("hide");
+
+  await loadLandings();
+  await loadLeads();
+}
+
+
+    
+/*
     await setUIFromSession();
   });
 
@@ -224,7 +256,7 @@ async function loadLeads() {
 
 setUIFromSession();
 sb.auth.onAuthStateChange(() => setUIFromSession());
-
+*/
 
 function escapeCsv(v){
   const s = (v ?? "").toString();
