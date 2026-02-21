@@ -21,6 +21,21 @@
     .pill{display:inline-block;padding:4px 10px;border:1px solid rgba(255,255,255,.14);border-radius:999px;font-size:12px;color:var(--muted)}
     .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
     .hide{display:none}
+    #pagination{margin-top:10px;flex-wrap:wrap}
+    #pagination button{padding:6px 10px;font-size:12px}
+    @media (max-width: 700px) {
+      table, thead, tbody, th, td, tr {display:block;}
+      thead{display:none;}
+      tr{margin-bottom:12px;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px;}
+      td{border:none;padding:6px 0;}
+      td::before{
+        content:attr(data-label);
+        font-weight:600;
+        color:var(--muted);
+        display:block;
+        margin-bottom:2px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -71,7 +86,7 @@
         <table>
           <thead>
             <tr>
-              <th>Data</th>
+              <th id="sortDate" style="cursor:pointer">Data ▼</th>
               <th>Imię</th>
               <th>Email</th>
               <th>Telefon</th>
@@ -82,6 +97,7 @@
           <tbody id="tbody"></tbody>
         </table>
       </div>
+      <div id="pagination" class="row"></div>
     </div>
   </div>
 
@@ -103,7 +119,15 @@
   const landingSelect = el("landingSelect");
   const statusFilter = el("statusFilter");
   const csvBtn = el("csvBtn");
+  const refreshBtn = el("refreshBtn");
   const tbody = el("tbody");
+  const pagination = el("pagination");
+  const sortDateTh = el("sortDate");
+
+  let leadsData = [];
+  let page = 1;
+  const perPage = 50; // 50 * 8 = 400 max
+  let sortAsc = false; // domyślnie najnowsze na górze
 
   function fmtDate(iso) {
     try { return new Date(iso).toLocaleString("pl-PL"); } catch { return iso; }
@@ -149,28 +173,38 @@
     });
   }
 
-  async function loadLeads() {
+  function renderPagination(total) {
+    pagination.innerHTML = "";
+    const pages = Math.max(1, Math.ceil(total / perPage));
+    if (page > pages) page = pages;
+
+    for (let i = 1; i <= pages; i++) {
+      const btn = document.createElement("button");
+      btn.textContent = i;
+      if (i === page) btn.style.opacity = "0.5";
+      btn.addEventListener("click", () => {
+        page = i;
+        renderLeads();
+      });
+      pagination.appendChild(btn);
+    }
+  }
+
+  function renderLeads() {
     tbody.innerHTML = "";
-    const landingId = landingSelect.value;
-    if (!landingId) return;
+    const start = (page - 1) * perPage;
+    const end = start + perPage;
+    const slice = leadsData.slice(start, end);
 
-    const { data, error } = await sb
-      .from("leads")
-      .select("*")
-      .eq("landing_id", landingId)
-      .order("created_at", { ascending: false });
-
-    if (error) return console.error(error);
-
-    (data || []).forEach((r) => {
+    slice.forEach((r) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${fmtDate(r.created_at)}</td>
-        <td>${r.name || ""}</td>
-        <td>${r.email || ""}</td>
-        <td>${r.phone || ""}</td>
-        <td>${r.status || "new"}</td>
-        <td>
+        <td data-label="Data">${fmtDate(r.created_at)}</td>
+        <td data-label="Imię">${r.name || ""}</td>
+        <td data-label="Email">${r.email || ""}</td>
+        <td data-label="Telefon">${r.phone || ""}</td>
+        <td data-label="Status">${r.status || "new"}</td>
+        <td data-label="Akcja">
           <select data-id="${r.id}" class="statusSel">
             <option value="new" ${r.status==="new"?"selected":""}>new</option>
             <option value="seen" ${r.status==="seen"?"selected":""}>seen</option>
@@ -185,11 +219,47 @@
       sel.addEventListener("change", async (e) => {
         const id = e.target.dataset.id;
         const value = e.target.value;
-
         const { error } = await sb.from("leads").update({ status: value }).eq("id", id);
         if (error) alert("RLS blokuje UPDATE albo błąd zapisu");
       });
     });
+
+    renderPagination(leadsData.length);
+  }
+
+  async function loadLeads() {
+    const landingId = landingSelect.value;
+    if (!landingId) {
+      leadsData = [];
+      renderLeads();
+      return;
+    }
+
+    const status = statusFilter.value;
+
+    let q = sb
+      .from("leads")
+      .select("*")
+      .eq("landing_id", landingId);
+
+    if (status) q = q.eq("status", status);
+
+    const { data, error } = await q;
+    if (error) {
+      console.error(error);
+      leadsData = [];
+      renderLeads();
+      return;
+    }
+
+    leadsData = (data || []).sort((a, b) => {
+      const da = new Date(a.created_at).getTime();
+      const db = new Date(b.created_at).getTime();
+      return sortAsc ? da - db : db - da;
+    });
+
+    page = 1;
+    renderLeads();
   }
 
   el("loginBtn").addEventListener("click", async () => {
@@ -212,11 +282,41 @@
     await setUIFromSession();
   });
 
-  landingSelect.addEventListener("change", loadLeads);
+  landingSelect.addEventListener("change", () => {
+    page = 1;
+    loadLeads();
+  });
+
+  statusFilter.addEventListener("change", () => {
+    page = 1;
+    loadLeads();
+  });
+
+  refreshBtn.addEventListener("click", () => {
+    page = 1;
+    loadLeads();
+  });
+
+  sortDateTh.addEventListener("click", () => {
+    sortAsc = !sortAsc;
+    sortDateTh.textContent = sortAsc ? "Data ▲" : "Data ▼";
+    if (leadsData.length) {
+      leadsData.sort((a, b) => {
+        const da = new Date(a.created_at).getTime();
+        const db = new Date(b.created_at).getTime();
+        return sortAsc ? da - db : db - da;
+      });
+      page = 1;
+      renderLeads();
+    } else {
+      loadLeads();
+    }
+  });
 
   csvBtn.addEventListener("click", async () => {
     const landingId = landingSelect.value;
     const status = statusFilter.value;
+    if (!landingId) return;
 
     let q = sb
       .from("leads")
@@ -232,7 +332,10 @@
 
     const header = ["created_at","name","email","phone","status"];
     const rows = [header.join(",")].concat(
-      (data || []).map(r => header.map(k => (r[k] ?? "").toString()).join(","))
+      (data || []).map(r => header.map(k => {
+        const v = (r[k] ?? "").toString();
+        return /[",\n]/.test(v) ? `"${v.replaceAll('"','""')}"` : v;
+      }).join(","))
     );
 
     const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
@@ -243,7 +346,6 @@
     URL.revokeObjectURL(a.href);
   });
 
-  // tylko jedno wywołanie
   setUIFromSession();
 </script>
 
