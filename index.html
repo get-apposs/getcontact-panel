@@ -26,9 +26,6 @@
 <body>
   <div class="wrap">
 
-    <!-- LOADING -->
-    <div id="loading" class="card">Ładowanie…</div>
-
     <div class="top">
       <div>
         <div style="font-size:18px;font-weight:800">Panel leadów</div>
@@ -41,15 +38,12 @@
     </div>
 
     <!-- LOGIN -->
-    <div id="loginCard" class="card hide">
+    <div id="loginCard" class="card">
       <div style="font-weight:800;margin-bottom:10px">Zaloguj się</div>
       <div class="row">
         <input id="email" type="email" placeholder="Email" autocomplete="email" />
         <input id="pass" type="password" placeholder="Hasło" autocomplete="current-password" />
         <button id="loginBtn">Zaloguj</button>
-      </div>
-      <div class="muted" style="margin-top:10px">
-        Jeśli nie masz konta, damy Ci je z automatu w późniejszym kroku (po zakupie).
       </div>
       <div id="loginMsg" class="muted" style="margin-top:10px"></div>
     </div>
@@ -73,8 +67,6 @@
         </div>
       </div>
 
-      <div class="muted" id="info" style="margin:10px 0 8px"></div>
-
       <div style="overflow:auto">
         <table>
           <thead>
@@ -96,14 +88,13 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
 <script>
-  const SUPABASE_URL = "https://xrixslhtrqbthcjcjloz.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyaXhzbGh0cnFidGhjamNqbG96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1ODAxNTksImV4cCI6MjA4NzE1NjE1OX0.KxKNlIm5PmP-OZ0apLYHN_-99AuGswn6HigNWmBPv7U";
-
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const sb = window.supabase.createClient(
+    "https://xrixslhtrqbthcjcjloz.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyaXhzbGh0cnFidGhjamNqbG96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1ODAxNTksImV4cCI6MjA4NzE1NjE1OX0.KxKNlIm5PmP-OZ0apLYHN_-99AuGswn6HigNWmBPv7U"
+  );
 
   const el = (id) => document.getElementById(id);
 
-  const loading = el("loading");
   const loginCard = el("loginCard");
   const appCard = el("appCard");
   const loginMsg = el("loginMsg");
@@ -119,16 +110,14 @@
   }
 
   async function setUIFromSession() {
-    loading.classList.remove("hide");
-    loginCard.classList.add("hide");
-    appCard.classList.add("hide");
-
     const { data } = await sb.auth.getSession();
     const user = data.session?.user;
 
     if (!user) {
-      loading.classList.add("hide");
       loginCard.classList.remove("hide");
+      appCard.classList.add("hide");
+      who.classList.add("hide");
+      logoutBtn.classList.add("hide");
       return;
     }
 
@@ -136,11 +125,11 @@
     who.classList.remove("hide");
     logoutBtn.classList.remove("hide");
 
+    loginCard.classList.add("hide");
+    appCard.classList.remove("hide");
+
     await loadLandings();
     await loadLeads();
-
-    loading.classList.add("hide");
-    appCard.classList.remove("hide");
   }
 
   async function loadLandings() {
@@ -192,17 +181,13 @@
       tbody.appendChild(tr);
     });
 
-    // podpinamy eventy PO renderowaniu
     tbody.querySelectorAll(".statusSel").forEach(sel => {
       sel.addEventListener("change", async (e) => {
         const id = e.target.dataset.id;
         const value = e.target.value;
 
         const { error } = await sb.from("leads").update({ status: value }).eq("id", id);
-        if (error) {
-          console.error(error);
-          alert("RLS blokuje UPDATE albo błąd zapisu");
-        }
+        if (error) alert("RLS blokuje UPDATE albo błąd zapisu");
       });
     });
   }
@@ -258,7 +243,7 @@
     URL.revokeObjectURL(a.href);
   });
 
-  sb.auth.onAuthStateChange(() => setUIFromSession());
+  // tylko jedno wywołanie
   setUIFromSession();
 </script>
 
