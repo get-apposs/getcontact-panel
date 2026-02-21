@@ -190,7 +190,31 @@ tbody.querySelectorAll(".statusSel").forEach(sel => {
   });
 });
 
+let loading = true;
 
+async function setUIFromSession() {
+  if (loading) {
+    loginCard.classList.add("hide");
+    appCard.classList.add("hide");
+  }
+
+  const { data } = await sb.auth.getSession();
+  const user = data.session?.user;
+
+  loading = false;
+
+  if (!user) {
+    loginCard.classList.remove("hide");
+    appCard.classList.add("hide");
+    return;
+  }
+
+  loginCard.classList.add("hide");
+  appCard.classList.remove("hide");
+
+  await loadLandings();
+  await loadLeads();
+}
 
   if (error) { console.error(error); return; }
 
@@ -276,36 +300,6 @@ async function exportCSV() {
   a.click();
   URL.revokeObjectURL(a.href);
 }
-
-
-
-  
-let loading = true;
-
-async function setUIFromSession() {
-  if (loading) {
-    loginCard.classList.add("hide");
-    appCard.classList.add("hide");
-  }
-
-  const { data } = await sb.auth.getSession();
-  const user = data.session?.user;
-
-  loading = false;
-
-  if (!user) {
-    loginCard.classList.remove("hide");
-    appCard.classList.add("hide");
-    return;
-  }
-
-  loginCard.classList.add("hide");
-  appCard.classList.remove("hide");
-
-  await loadLandings();
-  await loadLeads();
-}
-
 
   
   
