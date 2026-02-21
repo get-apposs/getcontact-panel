@@ -69,14 +69,19 @@
         <div class="row">
           <label class="muted">Landing</label>
           <select id="landingSelect"></select>
+
           <select id="statusFilter">
             <option value="">Wszystkie</option>
             <option value="new">Nowe</option>
             <option value="seen">Widziane</option>
             <option value="contacted">Skontaktowane</option>
           </select>
+
+          <input id="searchInput" type="text" placeholder="Szukaj..." />
+
           <button id="refreshBtn">Odśwież</button>
         </div>
+
         <div class="row">
           <button id="csvBtn">Eksport CSV</button>
         </div>
@@ -97,6 +102,7 @@
           <tbody id="tbody"></tbody>
         </table>
       </div>
+
       <div id="pagination" class="row"></div>
     </div>
   </div>
@@ -118,6 +124,7 @@
   const logoutBtn = el("logoutBtn");
   const landingSelect = el("landingSelect");
   const statusFilter = el("statusFilter");
+  const searchInput = el("searchInput");
   const csvBtn = el("csvBtn");
   const refreshBtn = el("refreshBtn");
   const tbody = el("tbody");
@@ -126,8 +133,9 @@
 
   let leadsData = [];
   let page = 1;
-  const perPage = 50; // 50 * 8 = 400 max
-  let sortAsc = false; // domyślnie najnowsze na górze
+  const perPage = 50;
+  let sortAsc = false;
+  let searchQuery = "";
 
   function fmtDate(iso) {
     try { return new Date(iso).toLocaleString("pl-PL"); } catch { return iso; }
@@ -192,9 +200,19 @@
 
   function renderLeads() {
     tbody.innerHTML = "";
+
+    const filtered = leadsData.filter(r => {
+      const q = searchQuery;
+      return (
+        (r.name || "").toLowerCase().includes(q) ||
+        (r.email || "").toLowerCase().includes(q) ||
+        (r.phone || "").toLowerCase().includes(q)
+      );
+    });
+
     const start = (page - 1) * perPage;
     const end = start + perPage;
-    const slice = leadsData.slice(start, end);
+    const slice = filtered.slice(start, end);
 
     slice.forEach((r) => {
       const tr = document.createElement("tr");
@@ -224,7 +242,7 @@
       });
     });
 
-    renderPagination(leadsData.length);
+    renderPagination(filtered.length);
   }
 
   async function loadLeads() {
@@ -295,6 +313,12 @@
   refreshBtn.addEventListener("click", () => {
     page = 1;
     loadLeads();
+  });
+
+  searchInput.addEventListener("input", () => {
+    searchQuery = searchInput.value.trim().toLowerCase();
+    page = 1;
+    renderLeads();
   });
 
   sortDateTh.addEventListener("click", () => {
