@@ -25,6 +25,10 @@
 </head>
 <body>
   <div class="wrap">
+
+    <!-- LOADING -->
+    <div id="loading" class="card">Ładowanie…</div>
+
     <div class="top">
       <div>
         <div style="font-size:18px;font-weight:800">Panel leadów</div>
@@ -37,7 +41,7 @@
     </div>
 
     <!-- LOGIN -->
-    <div id="loginCard" class="card">
+    <div id="loginCard" class="card hide">
       <div style="font-weight:800;margin-bottom:10px">Zaloguj się</div>
       <div class="row">
         <input id="email" type="email" placeholder="Email" autocomplete="email" />
@@ -89,49 +93,42 @@
     </div>
   </div>
 
-
-
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
-
 <script>
-  console.log("SUPABASE UMD:", window.supabase);
-  
   const SUPABASE_URL = "https://xrixslhtrqbthcjcjloz.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyaXhzbGh0cnFidGhjamNqbG96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1ODAxNTksImV4cCI6MjA4NzE1NjE1OX0.KxKNlIm5PmP-OZ0apLYHN_-99AuGswn6HigNWmBPv7U";
 
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-
   const el = (id) => document.getElementById(id);
 
+  const loading = el("loading");
   const loginCard = el("loginCard");
   const appCard = el("appCard");
   const loginMsg = el("loginMsg");
   const who = el("who");
   const logoutBtn = el("logoutBtn");
-
   const landingSelect = el("landingSelect");
   const statusFilter = el("statusFilter");
-  const refreshBtn = el("refreshBtn");
   const csvBtn = el("csvBtn");
   const tbody = el("tbody");
-  const info = el("info");
 
   function fmtDate(iso) {
     try { return new Date(iso).toLocaleString("pl-PL"); } catch { return iso; }
   }
 
   async function setUIFromSession() {
+    loading.classList.remove("hide");
+    loginCard.classList.add("hide");
+    appCard.classList.add("hide");
+
     const { data } = await sb.auth.getSession();
     const user = data.session?.user;
 
     if (!user) {
+      loading.classList.add("hide");
       loginCard.classList.remove("hide");
-      appCard.classList.add("hide");
-      who.classList.add("hide");
-      logoutBtn.classList.add("hide");
       return;
     }
 
@@ -139,81 +136,76 @@
     who.classList.remove("hide");
     logoutBtn.classList.remove("hide");
 
-    loginCard.classList.add("hide");
-    appCard.classList.remove("hide");
-
     await loadLandings();
     await loadLeads();
+
+    loading.classList.add("hide");
+    appCard.classList.remove("hide");
   }
 
-async function loadLandings() {
-  const { data, error } = await sb
-  .from("landings")
-  .select("id, name, public_path, active, created_at")
-  .order("created_at", { ascending: false });
+  async function loadLandings() {
+    const { data, error } = await sb
+      .from("landings")
+      .select("id, public_path")
+      .order("created_at", { ascending: false });
 
+    if (error) return console.error(error);
 
-  if (error) { console.error(error); return; }
+    landingSelect.innerHTML = "";
+    (data || []).forEach((l) => {
+      const opt = document.createElement("option");
+      opt.value = l.id;
+      opt.textContent = l.public_path;
+      landingSelect.appendChild(opt);
+    });
+  }
 
-  landingSelect.innerHTML = "";
-  (data || []).forEach((l) => {
-    const opt = document.createElement("option");
-    opt.value = l.id;
-    opt.textContent = l.public_path;
-    landingSelect.appendChild(opt);
-  });
-}
+  async function loadLeads() {
+    tbody.innerHTML = "";
+    const landingId = landingSelect.value;
+    if (!landingId) return;
 
-async function loadLeads() {
-  tbody.innerHTML = "";
-  const landingId = landingSelect.value;
-  if (!landingId) return;
+    const { data, error } = await sb
+      .from("leads")
+      .select("*")
+      .eq("landing_id", landingId)
+      .order("created_at", { ascending: false });
 
-  const { data, error } = await sb
-  .from("leads")
-  .select("*")
-  .eq("landing_id", landingId)
-  .order("created_at", { ascending: false });
+    if (error) return console.error(error);
 
+    (data || []).forEach((r) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${fmtDate(r.created_at)}</td>
+        <td>${r.name || ""}</td>
+        <td>${r.email || ""}</td>
+        <td>${r.phone || ""}</td>
+        <td>${r.status || "new"}</td>
+        <td>
+          <select data-id="${r.id}" class="statusSel">
+            <option value="new" ${r.status==="new"?"selected":""}>new</option>
+            <option value="seen" ${r.status==="seen"?"selected":""}>seen</option>
+            <option value="contacted" ${r.status==="contacted"?"selected":""}>contacted</option>
+          </select>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
 
-  
-tbody.querySelectorAll(".statusSel").forEach(sel => {
-  sel.addEventListener("change", async (e) => {
-    const id = e.target.dataset.id;
-    const value = e.target.value;
+    // podpinamy eventy PO renderowaniu
+    tbody.querySelectorAll(".statusSel").forEach(sel => {
+      sel.addEventListener("change", async (e) => {
+        const id = e.target.dataset.id;
+        const value = e.target.value;
 
-    const { error } = await sb.from("leads").update({ status: value }).eq("id", id);
-    if (error) {
-      console.error(error);
-      alert("RLS blokuje UPDATE albo błąd zapisu");
-    }
-  });
-});
-
-
-
-  if (error) { console.error(error); return; }
-
-  (data || []).forEach((r) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${fmtDate(r.created_at)}</td>
-      <td>${r.name || ""}</td>
-      <td>${r.email || ""}</td>
-      <td>${r.phone || ""}</td>
-      <td>${r.status || "new"}</td>
-      <td>
-  <select data-id="${r.id}" class="statusSel">
-    <option value="new" ${r.status==="new"?"selected":""}>new</option>
-    <option value="seen" ${r.status==="seen"?"selected":""}>seen</option>
-    <option value="contacted" ${r.status==="contacted"?"selected":""}>contacted</option>
-  </select>
-</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
+        const { error } = await sb.from("leads").update({ status: value }).eq("id", id);
+        if (error) {
+          console.error(error);
+          alert("RLS blokuje UPDATE albo błąd zapisu");
+        }
+      });
+    });
+  }
 
   el("loginBtn").addEventListener("click", async () => {
     loginMsg.textContent = "";
@@ -224,10 +216,8 @@ tbody.querySelectorAll(".statusSel").forEach(sel => {
 
     if (error) {
       loginMsg.textContent = "Błędny email lub hasło.";
-      console.error(error);
       return;
     }
-
 
     await setUIFromSession();
   });
@@ -237,53 +227,40 @@ tbody.querySelectorAll(".statusSel").forEach(sel => {
     await setUIFromSession();
   });
 
- landingSelect.addEventListener("change", loadLeads);
+  landingSelect.addEventListener("change", loadLeads);
 
-setUIFromSession();
-sb.auth.onAuthStateChange(() => setUIFromSession());
+  csvBtn.addEventListener("click", async () => {
+    const landingId = landingSelect.value;
+    const status = statusFilter.value;
 
+    let q = sb
+      .from("leads")
+      .select("created_at,name,email,phone,status")
+      .eq("landing_id", landingId)
+      .order("created_at", { ascending: false })
+      .limit(5000);
 
-function escapeCsv(v){
-  const s = (v ?? "").toString();
-  return /[",\n]/.test(s) ? `"${s.replaceAll('"','""')}"` : s;
-}
+    if (status) q = q.eq("status", status);
 
-async function exportCSV() {
-  const landingId = document.getElementById("landingSelect").value;
-  const status = document.getElementById("statusFilter").value;
+    const { data, error } = await q;
+    if (error) return alert("Błąd eksportu");
 
-  let q = sb
-    .from("leads")
-    .select("created_at,name,email,phone,status")
-    .eq("landing_id", landingId)
-    .order("created_at", { ascending: false })
-    .limit(5000);
+    const header = ["created_at","name","email","phone","status"];
+    const rows = [header.join(",")].concat(
+      (data || []).map(r => header.map(k => (r[k] ?? "").toString()).join(","))
+    );
 
-  if (status) q = q.eq("status", status);
+    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "leads.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
 
-  const { data, error } = await q;
-  if (error) { console.error(error); alert("Błąd eksportu"); return; }
-
-  const header = ["created_at","name","email","phone","status"];
-  const rows = [header.join(",")].concat(
-    (data || []).map(r => header.map(k => escapeCsv(r[k])).join(","))
-  );
-
-  const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "leads.csv";
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-  
-  
+  sb.auth.onAuthStateChange(() => setUIFromSession());
+  setUIFromSession();
 </script>
-
-
-
-
 
 </body>
 </html>
