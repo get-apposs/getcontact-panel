@@ -176,6 +176,22 @@ async function loadLeads() {
   .order("created_at", { ascending: false });
 
 
+  
+tbody.querySelectorAll(".statusSel").forEach(sel => {
+  sel.addEventListener("change", async (e) => {
+    const id = e.target.dataset.id;
+    const value = e.target.value;
+
+    const { error } = await sb.from("leads").update({ status: value }).eq("id", id);
+    if (error) {
+      console.error(error);
+      alert("RLS blokuje UPDATE albo błąd zapisu");
+    }
+  });
+});
+
+
+
   if (error) { console.error(error); return; }
 
   (data || []).forEach((r) => {
@@ -262,15 +278,35 @@ async function exportCSV() {
 }
 
 
- document.querySelectorAll(".statusSel").forEach(sel => {
-  sel.addEventListener("change", async (e) => {
-    const id = e.target.dataset.id;
-    const value = e.target.value;
 
-    const { error } = await sb.from("leads").update({ status: value }).eq("id", id);
-    if (error) { console.error(error); alert("RLS blokuje UPDATE albo błąd zapisu"); }
-  });
-});
+  
+let loading = true;
+
+async function setUIFromSession() {
+  if (loading) {
+    loginCard.classList.add("hide");
+    appCard.classList.add("hide");
+  }
+
+  const { data } = await sb.auth.getSession();
+  const user = data.session?.user;
+
+  loading = false;
+
+  if (!user) {
+    loginCard.classList.remove("hide");
+    appCard.classList.add("hide");
+    return;
+  }
+
+  loginCard.classList.add("hide");
+  appCard.classList.remove("hide");
+
+  await loadLandings();
+  await loadLeads();
+}
+
+
   
   
 </script>
