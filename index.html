@@ -63,6 +63,22 @@
       <div id="loginMsg" class="muted" style="margin-top:10px"></div>
     </div>
 
+
+    
+
+    <div id="setPassCard" class="card hide" style="margin-top:14px">
+  <div style="font-weight:800;margin-bottom:10px">Ustaw hasło</div>
+  <div class="row">
+    <input id="newPass" type="password" placeholder="Nowe hasło" autocomplete="new-password" />
+    <button id="setPassBtn">Zapisz hasło</button>
+  </div>
+  <div id="setPassMsg" class="muted" style="margin-top:10px"></div>
+</div>
+
+
+
+
+    
     <!-- APP -->
     <div id="appCard" class="card hide" style="margin-top:14px">
       <div class="row" style="justify-content:space-between">
@@ -120,6 +136,8 @@
   const loginCard = el("loginCard");
   const appCard = el("appCard");
   const loginMsg = el("loginMsg");
+  const setPassCard = el("setPassCard");
+  const setPassMsg = el("setPassMsg");
   const who = el("who");
   const logoutBtn = el("logoutBtn");
   const landingSelect = el("landingSelect");
