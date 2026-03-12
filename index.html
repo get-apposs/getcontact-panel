@@ -136,8 +136,12 @@
   const loginCard = el("loginCard");
   const appCard = el("appCard");
   const loginMsg = el("loginMsg");
+
   const setPassCard = el("setPassCard");
   const setPassMsg = el("setPassMsg");
+  const setPassBtn = el("setPassBtn");
+  const newPass = el("newPass");
+
   const who = el("who");
   const logoutBtn = el("logoutBtn");
   const landingSelect = el("landingSelect");
@@ -359,6 +363,43 @@
     await setUIFromSession();
   });
 
+
+setPassBtn.addEventListener("click", async () => {
+  setPassMsg.textContent = "";
+
+  const password = newPass.value.trim();
+
+  if (password.length < 8) {
+    setPassMsg.textContent = "Hasło musi mieć minimum 8 znaków.";
+    return;
+  }
+
+  setPassBtn.disabled = true;
+  setPassMsg.textContent = "Zapisywanie hasła...";
+
+  const { error } = await sb.auth.updateUser({ password });
+
+  if (error) {
+    setPassMsg.textContent = "Nie udało się zapisać hasła: " + error.message;
+    setPassBtn.disabled = false;
+    return;
+  }
+
+  setPassMsg.textContent = "Hasło zapisane. Przechodzę do panelu...";
+
+  history.replaceState({}, "", "/");
+
+  setTimeout(async () => {
+    await setUIFromSession();
+    setPassCard.classList.add("hide");
+    setPassBtn.disabled = false;
+  }, 900);
+});
+
+
+
+
+  
   landingSelect.addEventListener("change", () => {
     page = 1;
     loadLeads();
