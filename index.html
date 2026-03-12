@@ -228,21 +228,27 @@
   }
 
   async function loadLandings() {
-    const { data, error } = await sb
-      .from("landings")
-      .select("id, public_path")
-      .order("created_at", { ascending: false });
+  const { data: sessionData } = await sb.auth.getSession();
+  const user = sessionData.session?.user;
 
-    if (error) return console.error(error);
+  if (!user) return;
 
-    landingSelect.innerHTML = "";
-    (data || []).forEach((l) => {
-      const opt = document.createElement("option");
-      opt.value = l.id;
-      opt.textContent = l.public_path;
-      landingSelect.appendChild(opt);
-    });
-  }
+  const { data, error } = await sb
+    .from("landings")
+    .select("id, public_path")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (error) return console.error(error);
+
+  landingSelect.innerHTML = "";
+  (data || []).forEach((l) => {
+    const opt = document.createElement("option");
+    opt.value = l.id;
+    opt.textContent = l.public_path;
+    landingSelect.appendChild(opt);
+  });
+}
 
   function renderPagination(total) {
     pagination.innerHTML = "";
