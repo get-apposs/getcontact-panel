@@ -159,6 +159,47 @@
     try { return new Date(iso).toLocaleString("pl-PL"); } catch { return iso; }
   }
 
+
+
+  async function handleAuthCallback() {
+  const path = window.location.pathname;
+  const hash = window.location.hash || "";
+  const search = window.location.search || "";
+
+  const isCallback =
+    path === "/auth/callback" &&
+    (
+      hash.includes("access_token") ||
+      hash.includes("refresh_token") ||
+      search.includes("code=") ||
+      search.includes("token_hash")
+    );
+
+  if (!isCallback) return false;
+
+  loginCard.classList.add("hide");
+  appCard.classList.add("hide");
+  setPassCard.classList.remove("hide");
+  setPassMsg.textContent = "Trwa aktywacja konta...";
+
+  await new Promise(r => setTimeout(r, 500));
+
+  const { data, error } = await sb.auth.getSession();
+
+  if (error || !data.session) {
+    setPassMsg.textContent = "Nie udało się aktywować sesji z linka. Spróbuj otworzyć link jeszcze raz.";
+    return true;
+  }
+
+  setPassMsg.textContent = "Konto aktywne. Ustaw swoje hasło.";
+  return true;
+}
+
+
+
+
+
+  
   async function setUIFromSession() {
     const { data } = await sb.auth.getSession();
     const user = data.session?.user;
@@ -388,7 +429,12 @@
     URL.revokeObjectURL(a.href);
   });
 
-  setUIFromSession();
+  (async () => {
+  const handled = await handleAuthCallback();
+  if (!handled) {
+    await setUIFromSession();
+  }
+})();
 </script>
 
 </body>
