@@ -123,14 +123,19 @@
     </div>
   </div>
 
+<script>
+  window.APP_CONFIG = {
+    supabaseUrl: "%%SUPABASE_URL%%",
+    supabaseAnonKey: "%%SUPABASE_ANON_KEY%%"
+  };
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-
 <script>
   const sb = window.supabase.createClient(
-    "https://xrixslhtrqbthcjcjloz.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyaXhzbGh0cnFidGhjamNqbG96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1ODAxNTksImV4cCI6MjA4NzE1NjE1OX0.KxKNlIm5PmP-OZ0apLYHN_-99AuGswn6HigNWmBPv7U"
+    window.APP_CONFIG.supabaseUrl,
+    window.APP_CONFIG.supabaseAnonKey
   );
-
+ 
   const el = (id) => document.getElementById(id);
 
   const loginCard = el("loginCard");
