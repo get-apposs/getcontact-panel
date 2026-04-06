@@ -12,29 +12,29 @@ export default async function handler(request, context) {
   }
 
   try {
-    const url = new URL("/index.html", request.url);
-    const fileResponse = await fetch(url.toString());
+    const response = await context.next();
 
-    if (!fileResponse.ok) {
-      console.error("Could not fetch index.html:", fileResponse.status);
-      return new Response("Not Found", { status: 404 });
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("text/html")) {
+      return response;
     }
 
-    const raw = await fileResponse.text();
+    const raw = await response.text();
 
     const html = raw
       .replace(/%%SUPABASE_URL%%/g, supabaseUrl)
       .replace(/%%SUPABASE_ANON_KEY%%/g, supabaseAnonKey);
 
+    const headers = new Headers(response.headers);
+    headers.set("Content-Type", "text/html; charset=utf-8");
+    headers.set("Cache-Control", "no-store");
+    headers.set("X-Frame-Options", "DENY");
+    headers.set("X-Content-Type-Options", "nosniff");
+    headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+
     return new Response(html, {
       status: 200,
-      headers: {
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-store",
-        "X-Frame-Options": "DENY",
-        "X-Content-Type-Options": "nosniff",
-        "Referrer-Policy": "strict-origin-when-cross-origin",
-      },
+      headers
     });
   } catch (err) {
     console.error("serve-panel error:", err.message);
@@ -43,5 +43,5 @@ export default async function handler(request, context) {
 }
 
 export const config = {
-  path: "/",
+  path: "/*",
 };
