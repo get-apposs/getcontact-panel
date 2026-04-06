@@ -3,7 +3,7 @@ export default async function handler(request, context) {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+  const supabaseUrl     = Deno.env.get("SUPABASE_URL")      || "";
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
 
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -12,30 +12,37 @@ export default async function handler(request, context) {
   }
 
   try {
-    const response = await context.next();
+    // ✅ context.next() pobiera plik statyczny z Netlify CDN — bez pętli
+    const indexRequest = new Request(
+      new URL("/index.html", request.url),
+      request
+    );
+    const fileResponse = await context.next(indexRequest);
 
-    const contentType = response.headers.get("content-type") || "";
-    if (!contentType.includes("text/html")) {
-      return response;
+    if (!fileResponse.ok) {
+      console.error("Could not fetch index.html:", fileResponse.status);
+      return new Response("Not Found", { status: 404 });
     }
 
-    const raw = await response.text();
+    const raw = await fileResponse.text();
 
     const html = raw
-      .replace(/%%SUPABASE_URL%%/g, supabaseUrl)
+      .replace(/%%SUPABASE_URL%%/g,      supabaseUrl)
       .replace(/%%SUPABASE_ANON_KEY%%/g, supabaseAnonKey);
 
-    const headers = new Headers(response.headers);
-    headers.set("Content-Type", "text/html; charset=utf-8");
-    headers.set("Cache-Control", "no-store");
-    headers.set("X-Frame-Options", "DENY");
-    headers.set("X-Content-Type-Options", "nosniff");
-    headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
 
-    return new Response(html, {
-      status: 200,
-      headers
-    });
+const headers = new Headers(fileResponse.headers);
+headers.set("Content-Type", "text/html; charset=utf-8");
+headers.set("Cache-Control", "no-store");
+headers.set("X-Frame-Options", "DENY");
+headers.set("X-Content-Type-Options", "nosniff");
+headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+
+return new Response(html, {
+  status: 200,
+  headers,
+});
+
   } catch (err) {
     console.error("serve-panel error:", err.message);
     return new Response("Server error", { status: 500 });
@@ -43,5 +50,5 @@ export default async function handler(request, context) {
 }
 
 export const config = {
-  path: "/*",
+  path: "/",
 };
