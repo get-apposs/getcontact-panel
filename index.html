@@ -288,24 +288,47 @@
     const end = start + perPage;
     const slice = filtered.slice(start, end);
 
-    slice.forEach((r) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td data-label="Data">${fmtDate(r.created_at)}</td>
-        <td data-label="Imię">${r.name || ""}</td>
-        <td data-label="Email">${r.email || ""}</td>
-        <td data-label="Telefon">${r.phone || ""}</td>
-        <td data-label="Status">${r.status || "new"}</td>
-        <td data-label="Akcja">
-          <select data-id="${r.id}" class="statusSel">
-            <option value="new" ${r.status==="new"?"selected":""}>new</option>
-            <option value="seen" ${r.status==="seen"?"selected":""}>seen</option>
-            <option value="contacted" ${r.status==="contacted"?"selected":""}>contacted</option>
-          </select>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
+   
+function td(label, value) {
+  const cell = document.createElement("td");
+  cell.setAttribute("data-label", label);
+  cell.textContent = value ?? "";
+  return cell;
+}
+
+slice.forEach((r) => {
+  const tr = document.createElement("tr");
+
+  tr.appendChild(td("Data", fmtDate(r.created_at)));
+  tr.appendChild(td("Imię", r.name || ""));
+  tr.appendChild(td("Email", r.email || ""));
+  tr.appendChild(td("Telefon", r.phone || ""));
+  tr.appendChild(td("Status", r.status || "new"));
+
+  const actionTd = document.createElement("td");
+  actionTd.setAttribute("data-label", "Akcja");
+
+  const sel = document.createElement("select");
+  sel.dataset.id = r.id;
+  sel.className = "statusSel";
+
+  ["new", "seen", "contacted"].forEach((status) => {
+    const opt = document.createElement("option");
+    opt.value = status;
+    opt.textContent = status;
+    if ((r.status || "new") === status) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  actionTd.appendChild(sel);
+  tr.appendChild(actionTd);
+
+  tbody.appendChild(tr);
+});
+
+
+
+    
 
     tbody.querySelectorAll(".statusSel").forEach(sel => {
       sel.addEventListener("change", async (e) => {
