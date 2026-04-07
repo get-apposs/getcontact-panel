@@ -74,6 +74,9 @@
   </div>
   <div id="setPassMsg" class="muted" style="margin-top:10px"></div>
 </div>
+    <div class="muted">
+  Hasło musi mieć min. 12 znaków, zawierać małą i dużą literę oraz cyfrę.
+</div>
 
 
 
@@ -404,10 +407,27 @@ setPassBtn.addEventListener("click", async () => {
 
   const password = newPass.value.trim();
 
-  if (password.length < 8) {
-    setPassMsg.textContent = "Hasło musi mieć minimum 8 znaków.";
-    return;
-  }
+/*nowe zasady hasła*/
+  
+if (password.length < 12) {
+  setPassMsg.textContent = "Hasło musi mieć minimum 12 znaków.";
+  return;
+}
+
+if (!/[a-z]/.test(password)) {
+  setPassMsg.textContent = "Hasło musi zawierać małą literę.";
+  return;
+}
+
+if (!/[A-Z]/.test(password)) {
+  setPassMsg.textContent = "Hasło musi zawierać dużą literę.";
+  return;
+}
+
+if (!/[0-9]/.test(password)) {
+  setPassMsg.textContent = "Hasło musi zawierać cyfrę.";
+  return;
+}
 
   setPassBtn.disabled = true;
   setPassMsg.textContent = "Zapisywanie hasła...";
