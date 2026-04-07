@@ -352,10 +352,11 @@ slice.forEach((r) => {
 
     const status = statusFilter.value;
 
-    let q = sb
-      .from("leads")
-      .select("*")
-      .eq("landing_id", landingId);
+    /*tu podmieniam*/
+let q = sb
+  .from("leads")
+  .select("id, created_at, name, email, phone, status")
+  .eq("landing_id", landingId);
 
     if (status) q = q.eq("status", status);
 
