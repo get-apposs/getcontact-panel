@@ -371,7 +371,7 @@
 
     setPassBtn.addEventListener("click", async () => {
       setPassMsg.textContent = "";
-      const password = newPass.value.trim();
+      const password = newPass.value;
 
       // ✅ walidacja złożoności hasła
       if (password.length < 12) {
