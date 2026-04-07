@@ -66,16 +66,19 @@
 
     
 
-    <div id="setPassCard" class="card hide" style="margin-top:14px">
+<div id="setPassCard" class="card hide" style="margin-top:14px">
   <div style="font-weight:800;margin-bottom:10px">Ustaw hasło</div>
+
   <div class="row">
     <input id="newPass" type="password" placeholder="Nowe hasło" autocomplete="new-password" />
     <button id="setPassBtn">Zapisz hasło</button>
   </div>
+  
+  <div class="muted" style="margin-top:8px">
+    Hasło musi mieć min. 12 znaków, zawierać małą i dużą literę oraz cyfrę.
+  </div>
+  
   <div id="setPassMsg" class="muted" style="margin-top:10px"></div>
-</div>
-    <div class="muted">
-  Hasło musi mieć min. 12 znaków, zawierać małą i dużą literę oraz cyfrę.
 </div>
 
 
@@ -355,7 +358,7 @@ slice.forEach((r) => {
 
     const status = statusFilter.value;
 
-    /*tu podmieniam*/
+  
 let q = sb
   .from("leads")
   .select("id, created_at, name, email, phone, status")
