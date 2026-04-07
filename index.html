@@ -514,6 +514,10 @@ console.error("setPass error:", error.message);
 
     const { data, error } = await q;
     if (error) return alert("Błąd eksportu");
+    
+    if ((data || []).length === 5000) {
+    alert("Eksport zawiera tylko pierwsze 5000 rekordów i może być niekompletny.");
+    }
 
     const header = ["created_at","name","email","phone","status"];
     const rows = [header.join(",")].concat(
