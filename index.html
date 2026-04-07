@@ -437,11 +437,14 @@ if (!/[0-9]/.test(password)) {
 
   const { error } = await sb.auth.updateUser({ password });
 
-  if (error) {
-    setPassMsg.textContent = "Nie udało się zapisać hasła: " + error.message;
-    setPassBtn.disabled = false;
-    return;
-  }
+  
+if (error?.message?.includes("Password")) {
+  setPassMsg.textContent = "Hasło nie spełnia wymagań.";
+} else {
+  setPassMsg.textContent = "Nie udało się zapisać hasła. Spróbuj ponownie.";
+}
+console.error("setPass error:", error.message);
+
 
   setPassMsg.textContent = "Hasło zapisane. Przechodzę do panelu...";
 
