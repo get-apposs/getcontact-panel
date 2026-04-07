@@ -63,28 +63,19 @@
       <div id="loginMsg" class="muted" style="margin-top:10px"></div>
     </div>
 
+    <!-- USTAW HASŁO (po invite) -->
+    <div id="setPassCard" class="card hide" style="margin-top:14px">
+      <div style="font-weight:800;margin-bottom:10px">Ustaw hasło</div>
+      <div class="row">
+        <input id="newPass" type="password" placeholder="Nowe hasło" autocomplete="new-password" />
+        <button id="setPassBtn">Zapisz hasło</button>
+      </div>
+      <div class="muted" style="margin-top:8px">
+        Hasło musi mieć min. 12 znaków, zawierać małą i dużą literę oraz cyfrę.
+      </div>
+      <div id="setPassMsg" class="muted" style="margin-top:10px"></div>
+    </div>
 
-    
-
-<div id="setPassCard" class="card hide" style="margin-top:14px">
-  <div style="font-weight:800;margin-bottom:10px">Ustaw hasło</div>
-
-  <div class="row">
-    <input id="newPass" type="password" placeholder="Nowe hasło" autocomplete="new-password" />
-    <button id="setPassBtn">Zapisz hasło</button>
-  </div>
-  
-  <div class="muted" style="margin-top:8px">
-    Hasło musi mieć min. 12 znaków, zawierać małą i dużą literę oraz cyfrę.
-  </div>
-  
-  <div id="setPassMsg" class="muted" style="margin-top:10px"></div>
-</div>
-
-
-
-
-    
     <!-- APP -->
     <div id="appCard" class="card hide" style="margin-top:14px">
       <div class="row" style="justify-content:space-between">
@@ -100,10 +91,8 @@
           </select>
 
           <input id="searchInput" type="text" placeholder="Szukaj..." />
-
           <button id="refreshBtn">Odśwież</button>
         </div>
-
         <div class="row">
           <button id="csvBtn">Eksport CSV</button>
         </div>
@@ -127,442 +116,378 @@
 
       <div id="pagination" class="row"></div>
     </div>
+
   </div>
 
-<script>
-  window.APP_CONFIG = {
-    supabaseUrl: "%%SUPABASE_URL%%",
-    supabaseAnonKey: "%%SUPABASE_ANON_KEY%%"
-  };
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script>
-  const sb = window.supabase.createClient(
-    window.APP_CONFIG.supabaseUrl,
-    window.APP_CONFIG.supabaseAnonKey
-  );
- 
-  const el = (id) => document.getElementById(id);
-
-  const loginCard = el("loginCard");
-  const appCard = el("appCard");
-  const loginMsg = el("loginMsg");
-
-  const setPassCard = el("setPassCard");
-  const setPassMsg = el("setPassMsg");
-  const setPassBtn = el("setPassBtn");
-  const newPass = el("newPass");
-
-  const who = el("who");
-  const logoutBtn = el("logoutBtn");
-  const landingSelect = el("landingSelect");
-  const statusFilter = el("statusFilter");
-  const searchInput = el("searchInput");
-  const csvBtn = el("csvBtn");
-  const refreshBtn = el("refreshBtn");
-  const tbody = el("tbody");
-  const pagination = el("pagination");
-  const sortDateTh = el("sortDate");
-
-  let leadsData = [];
-  let page = 1;
-  const perPage = 50;
-  let sortAsc = false;
-  let searchQuery = "";
-
-  function fmtDate(iso) {
-    try { return new Date(iso).toLocaleString("pl-PL"); } catch { return iso; }
-  }
-
-
-
-  async function handleAuthCallback() {
-  const path = window.location.pathname;
-  const hash = window.location.hash || "";
-  const search = window.location.search || "";
-
-  const isCallback =
-    path === "/auth/callback" &&
-    (
-      hash.includes("access_token") ||
-      hash.includes("refresh_token") ||
-      search.includes("code=") ||
-      search.includes("token_hash")
+  <script>
+    window.APP_CONFIG = {
+      supabaseUrl: "%%SUPABASE_URL%%",
+      supabaseAnonKey: "%%SUPABASE_ANON_KEY%%"
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    const sb = window.supabase.createClient(
+      window.APP_CONFIG.supabaseUrl,
+      window.APP_CONFIG.supabaseAnonKey
     );
 
-  if (!isCallback) return false;
+    const el = (id) => document.getElementById(id);
 
-  loginCard.classList.add("hide");
-  appCard.classList.add("hide");
-  setPassCard.classList.remove("hide");
-  setPassMsg.textContent = "Trwa aktywacja konta...";
+    const loginCard   = el("loginCard");
+    const appCard     = el("appCard");
+    const loginMsg    = el("loginMsg");
+    const setPassCard = el("setPassCard");
+    const setPassMsg  = el("setPassMsg");
+    const setPassBtn  = el("setPassBtn");
+    const newPass     = el("newPass");
+    const who         = el("who");
+    const logoutBtn   = el("logoutBtn");
+    const landingSelect = el("landingSelect");
+    const statusFilter  = el("statusFilter");
+    const searchInput   = el("searchInput");
+    const csvBtn        = el("csvBtn");
+    const refreshBtn    = el("refreshBtn");
+    const tbody         = el("tbody");
+    const pagination    = el("pagination");
+    const sortDateTh    = el("sortDate");
 
-  await new Promise(r => setTimeout(r, 500));
+    let leadsData   = [];
+    let page        = 1;
+    const perPage   = 50;
+    let sortAsc     = false;
+    let searchQuery = "";
 
-  const { data, error } = await sb.auth.getSession();
+    function fmtDate(iso) {
+      try { return new Date(iso).toLocaleString("pl-PL"); } catch { return iso; }
+    }
 
-  if (error || !data.session) {
-    setPassMsg.textContent = "Nie udało się aktywować sesji z linka. Spróbuj otworzyć link jeszcze raz.";
-    return true;
-  }
+    // ✅ onAuthStateChange zamiast setTimeout — pewna aktywacja sesji
+    async function handleAuthCallback() {
+      const path   = window.location.pathname;
+      const hash   = window.location.hash   || "";
+      const search = window.location.search || "";
 
-  setPassMsg.textContent = "Konto aktywne. Ustaw swoje hasło.";
-  return true;
-}
+      const isCallback =
+        path === "/auth/callback" &&
+        (
+          hash.includes("access_token")  ||
+          hash.includes("refresh_token") ||
+          search.includes("code=")       ||
+          search.includes("token_hash")
+        );
 
+      if (!isCallback) return false;
 
-
-
-
-  
-  async function setUIFromSession() {
-    const { data } = await sb.auth.getSession();
-    const user = data.session?.user;
-
-    if (!user) {
-      loginCard.classList.remove("hide");
+      loginCard.classList.add("hide");
       appCard.classList.add("hide");
-      who.classList.add("hide");
-      logoutBtn.classList.add("hide");
-      return;
-    }
+      setPassCard.classList.remove("hide");
+      setPassMsg.textContent = "Trwa aktywacja konta...";
 
-    who.textContent = user.email || user.id;
-    who.classList.remove("hide");
-    logoutBtn.classList.remove("hide");
+      return new Promise((resolve) => {
+        const { data: { subscription } } = sb.auth.onAuthStateChange((event, session) => {
+          subscription.unsubscribe();
+          if (session) {
+            setPassMsg.textContent = "Konto aktywne. Ustaw swoje hasło.";
+          } else {
+            setPassMsg.textContent = "Nie udało się aktywować sesji. Spróbuj otworzyć link jeszcze raz.";
+          }
+          resolve(true);
+        });
 
-    loginCard.classList.add("hide");
-    appCard.classList.remove("hide");
-
-    await loadLandings();
-    await loadLeads();
-  }
-
-  async function loadLandings() {
-  const { data: sessionData } = await sb.auth.getSession();
-  const user = sessionData.session?.user;
-
-  if (!user) return;
-
-  const { data, error } = await sb
-    .from("landings")
-    .select("id, public_path")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
-
-  if (error) return console.error(error);
-
-  landingSelect.innerHTML = "";
-  (data || []).forEach((l) => {
-    const opt = document.createElement("option");
-    opt.value = l.id;
-    opt.textContent = l.public_path;
-    landingSelect.appendChild(opt);
-  });
-}
-
-  function renderPagination(total) {
-    pagination.innerHTML = "";
-    const pages = Math.max(1, Math.ceil(total / perPage));
-    if (page > pages) page = pages;
-
-    for (let i = 1; i <= pages; i++) {
-      const btn = document.createElement("button");
-      btn.textContent = i;
-      if (i === page) btn.style.opacity = "0.5";
-      btn.addEventListener("click", () => {
-        page = i;
-        renderLeads();
+        // ✅ timeout awaryjny — jeśli zdarzenie nie przyjdzie w 5s
+        setTimeout(() => {
+          subscription.unsubscribe();
+          setPassMsg.textContent = "Przekroczono czas aktywacji. Spróbuj otworzyć link jeszcze raz.";
+          resolve(true);
+        }, 5000);
       });
-      pagination.appendChild(btn);
     }
-  }
 
-  function renderLeads() {
-    tbody.innerHTML = "";
+    async function setUIFromSession() {
+      const { data } = await sb.auth.getSession();
+      const user = data.session?.user;
 
-    const filtered = leadsData.filter(r => {
-      const q = searchQuery;
-      return (
-        (r.name || "").toLowerCase().includes(q) ||
-        (r.email || "").toLowerCase().includes(q) ||
-        (r.phone || "").toLowerCase().includes(q)
-      );
-    });
+      if (!user) {
+        loginCard.classList.remove("hide");
+        appCard.classList.add("hide");
+        who.classList.add("hide");
+        logoutBtn.classList.add("hide");
+        return;
+      }
 
-    const start = (page - 1) * perPage;
-    const end = start + perPage;
-    const slice = filtered.slice(start, end);
+      who.textContent = user.email || user.id;
+      who.classList.remove("hide");
+      logoutBtn.classList.remove("hide");
+      loginCard.classList.add("hide");
+      appCard.classList.remove("hide");
 
-   
-function td(label, value) {
-  const cell = document.createElement("td");
-  cell.setAttribute("data-label", label);
-  cell.textContent = value ?? "";
-  return cell;
-}
+      await loadLandings();
+      await loadLeads();
+    }
 
-slice.forEach((r) => {
-  const tr = document.createElement("tr");
+    async function loadLandings() {
+      const { data: sessionData } = await sb.auth.getSession();
+      const user = sessionData.session?.user;
+      if (!user) return;
 
-  tr.appendChild(td("Data", fmtDate(r.created_at)));
-  tr.appendChild(td("Imię", r.name || ""));
-  tr.appendChild(td("Email", r.email || ""));
-  tr.appendChild(td("Telefon", r.phone || ""));
-  tr.appendChild(td("Status", r.status || "new"));
+      const { data, error } = await sb
+        .from("landings")
+        .select("id, public_path")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
-  const actionTd = document.createElement("td");
-  actionTd.setAttribute("data-label", "Akcja");
+      if (error) return console.error(error);
 
-  const sel = document.createElement("select");
-  sel.dataset.id = r.id;
-  sel.className = "statusSel";
-
-  ["new", "seen", "contacted"].forEach((status) => {
-    const opt = document.createElement("option");
-    opt.value = status;
-    opt.textContent = status;
-    if ((r.status || "new") === status) opt.selected = true;
-    sel.appendChild(opt);
-  });
-
-  actionTd.appendChild(sel);
-  tr.appendChild(actionTd);
-
-  tbody.appendChild(tr);
-});
-
-
-
-    
-
-    tbody.querySelectorAll(".statusSel").forEach(sel => {
-      sel.addEventListener("change", async (e) => {
-        const id = e.target.dataset.id;
-        const value = e.target.value;
-        const { error } = await sb.from("leads").update({ status: value }).eq("id", id);
-        if (error) alert("RLS blokuje UPDATE albo błąd zapisu");
+      landingSelect.innerHTML = "";
+      (data || []).forEach((l) => {
+        const opt = document.createElement("option");
+        opt.value = l.id;
+        opt.textContent = l.public_path;
+        landingSelect.appendChild(opt);
       });
-    });
-
-    renderPagination(filtered.length);
-  }
-
-  async function loadLeads() {
-    const landingId = landingSelect.value;
-    if (!landingId) {
-      leadsData = [];
-      renderLeads();
-      return;
     }
 
-    const status = statusFilter.value;
-
-  
-let q = sb
-  .from("leads")
-  .select("id, created_at, name, email, phone, status")
-  .eq("landing_id", landingId);
-
-    if (status) q = q.eq("status", status);
-
-    const { data, error } = await q;
-    if (error) {
-      console.error(error);
-      leadsData = [];
-      renderLeads();
-      return;
+    function td(label, value) {
+      const cell = document.createElement("td");
+      cell.setAttribute("data-label", label);
+      cell.textContent = value ?? "";
+      return cell;
     }
 
-    leadsData = (data || []).sort((a, b) => {
-      const da = new Date(a.created_at).getTime();
-      const db = new Date(b.created_at).getTime();
-      return sortAsc ? da - db : db - da;
-    });
+    function renderPagination(total) {
+      pagination.innerHTML = "";
+      const pages = Math.max(1, Math.ceil(total / perPage));
+      if (page > pages) page = pages;
 
-    page = 1;
-    renderLeads();
-  }
-
-  el("loginBtn").addEventListener("click", async () => {
-    loginMsg.textContent = "";
-    const email = el("email").value.trim();
-    const password = el("pass").value;
-
-    const { error } = await sb.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      loginMsg.textContent = "Błędny email lub hasło.";
-      return;
+      for (let i = 1; i <= pages; i++) {
+        const btn = document.createElement("button");
+        btn.textContent = i;
+        if (i === page) btn.style.opacity = "0.5";
+        btn.addEventListener("click", () => { page = i; renderLeads(); });
+        pagination.appendChild(btn);
+      }
     }
 
-    await setUIFromSession();
-  });
+    function renderLeads() {
+      tbody.innerHTML = "";
 
-  logoutBtn.addEventListener("click", async () => {
-    await sb.auth.signOut();
-    await setUIFromSession();
-  });
+      const filtered = leadsData.filter(r => {
+        const q = searchQuery;
+        return (
+          (r.name  || "").toLowerCase().includes(q) ||
+          (r.email || "").toLowerCase().includes(q) ||
+          (r.phone || "").toLowerCase().includes(q)
+        );
+      });
 
+      const slice = filtered.slice((page - 1) * perPage, page * perPage);
 
-setPassBtn.addEventListener("click", async () => {
-  setPassMsg.textContent = "";
+      slice.forEach((r) => {
+        const tr = document.createElement("tr");
+        tr.appendChild(td("Data",    fmtDate(r.created_at)));
+        tr.appendChild(td("Imię",    r.name  || ""));
+        tr.appendChild(td("Email",   r.email || ""));
+        tr.appendChild(td("Telefon", r.phone || ""));
+        tr.appendChild(td("Status",  r.status || "new"));
 
-  const password = newPass.value.trim();
+        const actionTd = document.createElement("td");
+        actionTd.setAttribute("data-label", "Akcja");
 
-  
-if (password.length < 12) {
-  setPassMsg.textContent = "Hasło musi mieć minimum 12 znaków.";
-  return;
-}
+        const sel = document.createElement("select");
+        sel.dataset.id = r.id;
+        sel.className  = "statusSel";
 
-if (!/[a-z]/.test(password)) {
-  setPassMsg.textContent = "Hasło musi zawierać małą literę.";
-  return;
-}
+        ["new", "seen", "contacted"].forEach((status) => {
+          const opt = document.createElement("option");
+          opt.value = status;
+          opt.textContent = status;
+          if ((r.status || "new") === status) opt.selected = true;
+          sel.appendChild(opt);
+        });
 
-if (!/[A-Z]/.test(password)) {
-  setPassMsg.textContent = "Hasło musi zawierać dużą literę.";
-  return;
-}
+        actionTd.appendChild(sel);
+        tr.appendChild(actionTd);
+        tbody.appendChild(tr);
+      });
 
-if (!/[0-9]/.test(password)) {
-  setPassMsg.textContent = "Hasło musi zawierać cyfrę.";
-  return;
-}
+      tbody.querySelectorAll(".statusSel").forEach(sel => {
+        sel.addEventListener("change", async (e) => {
+          const id    = e.target.dataset.id;
+          const value = e.target.value;
+          const { error } = await sb.from("leads").update({ status: value }).eq("id", id);
+          if (error) alert("Błąd zapisu statusu.");
+        });
+      });
 
-setPassBtn.addEventListener("click", async () => {
-  setPassMsg.textContent = "";
-
-  const password = newPass.value.trim();
-
-  if (password.length < 12) {
-    setPassMsg.textContent = "Hasło musi mieć minimum 12 znaków.";
-    return;
-  }
-  if (!/[a-z]/.test(password)) {
-    setPassMsg.textContent = "Hasło musi zawierać małą literę.";
-    return;
-  }
-  if (!/[A-Z]/.test(password)) {
-    setPassMsg.textContent = "Hasło musi zawierać dużą literę.";
-    return;
-  }
-  if (!/[0-9]/.test(password)) {
-    setPassMsg.textContent = "Hasło musi zawierać cyfrę.";
-    return;
-  }
-
-  setPassBtn.disabled = true;
-  setPassMsg.textContent = "Zapisywanie hasła...";
-
-  const { error } = await sb.auth.updateUser({ password });
-
-  //  obsługa błędu z returnem — nie wpada w sukces
-  if (error) {
-    if (error.message?.includes("Password")) {
-      setPassMsg.textContent = "Hasło nie spełnia wymagań serwera.";
-    } else {
-      setPassMsg.textContent = "Nie udało się zapisać hasła. Spróbuj ponownie.";
+      renderPagination(filtered.length);
     }
-    console.error("setPass error:", error.message);
-    setPassBtn.disabled = false;
-    return; //  stop — nie wykonuj kodu sukcesu
-  }
 
-  //  tylko gdy brak błędu
-  setPassMsg.textContent = "Hasło zapisane. Przechodzę do panelu...";
-  history.replaceState({}, "", "/");
+    async function loadLeads() {
+      const landingId = landingSelect.value;
+      if (!landingId) { leadsData = []; renderLeads(); return; }
 
-  setTimeout(async () => {
-    await setUIFromSession();
-    setPassCard.classList.add("hide");
-    setPassBtn.disabled = false;
-  }, 900);
-});
+      const status = statusFilter.value;
 
-  
-  landingSelect.addEventListener("change", () => {
-    page = 1;
-    loadLeads();
-  });
+      // ✅ jawne kolumny zamiast select("*")
+      let q = sb
+        .from("leads")
+        .select("id, created_at, name, email, phone, status")
+        .eq("landing_id", landingId);
 
-  statusFilter.addEventListener("change", () => {
-    page = 1;
-    loadLeads();
-  });
+      if (status) q = q.eq("status", status);
 
-  refreshBtn.addEventListener("click", () => {
-    page = 1;
-    loadLeads();
-  });
+      const { data, error } = await q;
+      if (error) { console.error(error); leadsData = []; renderLeads(); return; }
 
-  searchInput.addEventListener("input", () => {
-    searchQuery = searchInput.value.trim().toLowerCase();
-    page = 1;
-    renderLeads();
-  });
-
-  sortDateTh.addEventListener("click", () => {
-    sortAsc = !sortAsc;
-    sortDateTh.textContent = sortAsc ? "Data ▲" : "Data ▼";
-    if (leadsData.length) {
-      leadsData.sort((a, b) => {
+      leadsData = (data || []).sort((a, b) => {
         const da = new Date(a.created_at).getTime();
         const db = new Date(b.created_at).getTime();
         return sortAsc ? da - db : db - da;
       });
+
       page = 1;
       renderLeads();
-    } else {
-      loadLeads();
-    }
-  });
-
-  csvBtn.addEventListener("click", async () => {
-    const landingId = landingSelect.value;
-    const status = statusFilter.value;
-    if (!landingId) return;
-
-    let q = sb
-      .from("leads")
-      .select("created_at,name,email,phone,status")
-      .eq("landing_id", landingId)
-      .order("created_at", { ascending: false })
-      .limit(5000);
-
-    if (status) q = q.eq("status", status);
-
-    const { data, error } = await q;
-    if (error) return alert("Błąd eksportu");
-    
-    if ((data || []).length === 5000) {
-    alert("Eksport zawiera tylko pierwsze 5000 rekordów i może być niekompletny.");
     }
 
-    const header = ["created_at","name","email","phone","status"];
-    const rows = [header.join(",")].concat(
-      (data || []).map(r => header.map(k => {
-        const v = (r[k] ?? "").toString();
-        return /[",\n]/.test(v) ? `"${v.replaceAll('"','""')}"` : v;
-      }).join(","))
-    );
+    // ── Logowanie ────────────────────────────────────────────────────────────
 
-    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "leads.csv";
-    a.click();
-    URL.revokeObjectURL(a.href);
-  });
+    el("loginBtn").addEventListener("click", async () => {
+      loginMsg.textContent = "";
+      const email    = el("email").value.trim();
+      const password = el("pass").value;
 
-  (async () => {
-  const handled = await handleAuthCallback();
-  if (!handled) {
-    await setUIFromSession();
-  }
-})();
-</script>
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) { loginMsg.textContent = "Błędny email lub hasło."; return; }
+      await setUIFromSession();
+    });
 
+    logoutBtn.addEventListener("click", async () => {
+      await sb.auth.signOut();
+      await setUIFromSession();
+    });
+
+    // ── Ustawianie hasła ─────────────────────────────────────────────────────
+
+    setPassBtn.addEventListener("click", async () => {
+      setPassMsg.textContent = "";
+      const password = newPass.value.trim();
+
+      // ✅ walidacja złożoności hasła
+      if (password.length < 12) {
+        setPassMsg.textContent = "Hasło musi mieć minimum 12 znaków."; return;
+      }
+      if (!/[a-z]/.test(password)) {
+        setPassMsg.textContent = "Hasło musi zawierać małą literę."; return;
+      }
+      if (!/[A-Z]/.test(password)) {
+        setPassMsg.textContent = "Hasło musi zawierać dużą literę."; return;
+      }
+      if (!/[0-9]/.test(password)) {
+        setPassMsg.textContent = "Hasło musi zawierać cyfrę."; return;
+      }
+
+      setPassBtn.disabled    = true;
+      setPassMsg.textContent = "Zapisywanie hasła...";
+
+      const { error } = await sb.auth.updateUser({ password });
+
+      // ✅ obsługa błędu z returnem — nie wpada w kod sukcesu
+      if (error) {
+        setPassMsg.textContent = error.message?.includes("Password")
+          ? "Hasło nie spełnia wymagań serwera."
+          : "Nie udało się zapisać hasła. Spróbuj ponownie.";
+        console.error("setPass error:", error.message);
+        setPassBtn.disabled = false;
+        return;
+      }
+
+      // ✅ tylko gdy brak błędu
+      setPassMsg.textContent = "Hasło zapisane. Przechodzę do panelu...";
+      history.replaceState({}, "", "/");
+
+      setTimeout(async () => {
+        await setUIFromSession();
+        setPassCard.classList.add("hide");
+        setPassBtn.disabled = false;
+      }, 900);
+    });
+
+    // ── Filtry i sortowanie ──────────────────────────────────────────────────
+
+    landingSelect.addEventListener("change", () => { page = 1; loadLeads(); });
+    statusFilter.addEventListener("change",  () => { page = 1; loadLeads(); });
+    refreshBtn.addEventListener("click",     () => { page = 1; loadLeads(); });
+
+    searchInput.addEventListener("input", () => {
+      searchQuery = searchInput.value.trim().toLowerCase();
+      page = 1;
+      renderLeads();
+    });
+
+    sortDateTh.addEventListener("click", () => {
+      sortAsc = !sortAsc;
+      sortDateTh.textContent = sortAsc ? "Data ▲" : "Data ▼";
+      if (leadsData.length) {
+        leadsData.sort((a, b) => {
+          const da = new Date(a.created_at).getTime();
+          const db = new Date(b.created_at).getTime();
+          return sortAsc ? da - db : db - da;
+        });
+        page = 1;
+        renderLeads();
+      } else {
+        loadLeads();
+      }
+    });
+
+    // ── Eksport CSV ──────────────────────────────────────────────────────────
+
+    csvBtn.addEventListener("click", async () => {
+      const landingId = landingSelect.value;
+      const status    = statusFilter.value;
+      if (!landingId) return;
+
+      let q = sb
+        .from("leads")
+        .select("created_at,name,email,phone,status")
+        .eq("landing_id", landingId)
+        .order("created_at", { ascending: false })
+        .limit(5000);
+
+      if (status) q = q.eq("status", status);
+
+      const { data, error } = await q;
+      if (error) { alert("Błąd eksportu."); return; }
+
+      // ✅ ostrzeżenie gdy wyniki mogą być obcięte
+      if ((data || []).length === 5000) {
+        alert("Eksport zawiera tylko pierwsze 5000 rekordów i może być niekompletny.");
+      }
+
+      const header = ["created_at","name","email","phone","status"];
+      const rows = [header.join(",")].concat(
+        (data || []).map(r => header.map(k => {
+          const v = (r[k] ?? "").toString();
+          return /[",\n]/.test(v) ? `"${v.replaceAll('"','""')}"` : v;
+        }).join(","))
+      );
+
+      const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "leads.csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+
+    (async () => {
+      const handled = await handleAuthCallback();
+      if (!handled) await setUIFromSession();
+    })();
+
+  </script>
 </body>
 </html>
