@@ -410,7 +410,6 @@ setPassBtn.addEventListener("click", async () => {
 
   const password = newPass.value.trim();
 
-/*nowe zasady hasła*/
   
 if (password.length < 12) {
   setPassMsg.textContent = "Hasło musi mieć minimum 12 znaków.";
@@ -432,22 +431,47 @@ if (!/[0-9]/.test(password)) {
   return;
 }
 
+setPassBtn.addEventListener("click", async () => {
+  setPassMsg.textContent = "";
+
+  const password = newPass.value.trim();
+
+  if (password.length < 12) {
+    setPassMsg.textContent = "Hasło musi mieć minimum 12 znaków.";
+    return;
+  }
+  if (!/[a-z]/.test(password)) {
+    setPassMsg.textContent = "Hasło musi zawierać małą literę.";
+    return;
+  }
+  if (!/[A-Z]/.test(password)) {
+    setPassMsg.textContent = "Hasło musi zawierać dużą literę.";
+    return;
+  }
+  if (!/[0-9]/.test(password)) {
+    setPassMsg.textContent = "Hasło musi zawierać cyfrę.";
+    return;
+  }
+
   setPassBtn.disabled = true;
   setPassMsg.textContent = "Zapisywanie hasła...";
 
   const { error } = await sb.auth.updateUser({ password });
 
-  
-if (error?.message?.includes("Password")) {
-  setPassMsg.textContent = "Hasło nie spełnia wymagań.";
-} else {
-  setPassMsg.textContent = "Nie udało się zapisać hasła. Spróbuj ponownie.";
-}
-console.error("setPass error:", error.message);
+  //  obsługa błędu z returnem — nie wpada w sukces
+  if (error) {
+    if (error.message?.includes("Password")) {
+      setPassMsg.textContent = "Hasło nie spełnia wymagań serwera.";
+    } else {
+      setPassMsg.textContent = "Nie udało się zapisać hasła. Spróbuj ponownie.";
+    }
+    console.error("setPass error:", error.message);
+    setPassBtn.disabled = false;
+    return; //  stop — nie wykonuj kodu sukcesu
+  }
 
-
+  //  tylko gdy brak błędu
   setPassMsg.textContent = "Hasło zapisane. Przechodzę do panelu...";
-
   history.replaceState({}, "", "/");
 
   setTimeout(async () => {
@@ -456,9 +480,6 @@ console.error("setPass error:", error.message);
     setPassBtn.disabled = false;
   }, 900);
 });
-
-
-
 
   
   landingSelect.addEventListener("change", () => {
